@@ -9,91 +9,116 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Main {
-    public static void mergeSort(int[] list,int inicio,int fin){
-        if (inicio == fin){
-            return;
-        }else{
-            int medio = (inicio+fin)/2;
-            mergeSort(list,inicio,medio);
-            mergeSort(list,medio+1,fin);
-            merge(list,inicio,medio+1,fin);
+    public static void sort(Contestant[] list, int inicio, int fin) {
+        if (inicio < fin) {
+            int medio = (inicio + fin) / 2;
+            sort(list, inicio, medio);
+            sort(list, medio + 1, fin);
+            merge(list, inicio, medio, fin);
         }
     }
-    public static void merge(int[] list, int inicio, int medio, int fin) {
-        int[] izquierda = new int[medio - inicio + 2];
 
-        for (int i = inicio; i <= medio; i++) {
-            izquierda[i - inicio] = list[i];
-        }
-        izquierda[medio - inicio + 1] = Integer.MAX_VALUE;
-        int[] derecha = new int[fin - medio + 1];
+    public static void merge(Contestant[] list, int inicio, int medio, int fin) {
+        int tamIzquierda = medio - inicio + 1;
+        int tamDerecha = fin - medio;
 
-        for (int i = medio + 1; i <= fin; i++) {
-            derecha[i - medio - 1] = list[i];
+        Contestant[] izquierda = new Contestant[tamIzquierda];
+        Contestant[] derecha = new Contestant[tamDerecha];
+
+        for (int i = 0; i < tamIzquierda; ++i) {
+            izquierda[i] = list[inicio + i];
         }
-        derecha[fin - medio] = Integer.MAX_VALUE;
+        for (int j = 0; j < tamDerecha; ++j) {
+            derecha[j] = list[medio + 1 + j];
+        }
         int i = 0, j = 0;
-
-        for (int k = inicio; k <= fin; k++) {
-            if (izquierda[i] <= derecha[j]) {
+        int k = inicio;
+        while (i < tamIzquierda && j < tamDerecha) {
+            if (izquierda[i].compareTo(derecha[j]) < 0) {
                 list[k] = izquierda[i];
                 i++;
-            }
-            else {
+            } else {
                 list[k] = derecha[j];
                 j++;
             }
+            k++;
+        }
+        while (i < tamIzquierda) {
+            list[k] = izquierda[i];
+            i++;
+            k++;
+        }
+        while (j < tamDerecha) {
+            list[k]=derecha[j];
+            j++;
+            k++;
         }
     }
 
-    public static int getNumber(String line){
-        String REGEX = "(\\w+) (\\d): (\\d+)";
+    public static int getNumber(String line) {
+        String REGEX = "(\\w+) (\\d+): (\\d+)";
         Pattern pattern = Pattern.compile(REGEX);
         Matcher matcher = pattern.matcher(line);
-        if(matcher.matches()){
+        if (matcher.matches()) {
             return Integer.parseInt(matcher.group(matcher.groupCount()));
         }
         return -1;
     }
 
-    public static void generateFile(int[][] list) throws IOException {
-        try(FileWriter writer = new FileWriter("output.txt")) {
-            for (int[] contestant : list) {
-                writer.write("Contestant "+contestant[0]+": "+contestant[1]);
+    public static int getId(String line) {
+        String REGEX = "(\\w+) (\\d+):";
+        Pattern pattern = Pattern.compile(REGEX);
+        Matcher matcher = pattern.matcher(line);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(matcher.groupCount()));
+        }
+        return -1;
+    }
+
+    public static void generateFile(Contestant[] list,String outputFilename) throws IOException {
+        try (FileWriter writer = new FileWriter(outputFilename)) {
+            writer.write(String.valueOf(list.length)+"\n");
+            for (Contestant contestant : list) {
+                writer.write(contestant.toString()+"\n");
             }
         }
     }
 
-    public static int[] parser(String file) throws FileNotFoundException {
-        int[] list;
+    public static Contestant[] parser(String file) throws FileNotFoundException {
+        Contestant[] list;
         int total;
         String line;
-        System.out.println(System.currentTimeMillis());
+        double start = System.currentTimeMillis();
         try (Scanner scanner = new Scanner(new FileReader(file))) {
             line = scanner.nextLine();
             total = Integer.parseInt(line);
-            list = new int[total];
+            list = new Contestant[total];
             int index = -1;
             while (scanner.hasNextLine()) {
                 line = scanner.nextLine();
                 index = index + 1;
-                list[index] = getNumber(line);
+                Contestant contestant = new Contestant(getId(line),getNumber(line));
+                list[index] = contestant;
             }
-            System.out.println("Fin parseo");
-            System.out.println(System.currentTimeMillis()/1000);
+            System.out.println(System.currentTimeMillis()-start);
         }
         return list;
     }
 
     public static void main(String[] args) {
         String file = "resources/contestants.txt";
-        int[] list = null;
+        String outputFilename = "output.txt";
+        Contestant[] list = null;
         try {
             list = parser(file);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        mergeSort(list,0,list.length);
-        System.out.println("FINAL");
+        sort(list, 0, list.length-1);
+        try{
+            generateFile(list,outputFilename);
+        }catch (IOException e){
+            e.printStackTrace();
+        }
     }
 }
